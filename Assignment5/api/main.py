@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 
 from .models import models, schemas
-from .controllers import orders, sandwiches, resources, recipes
+from .controllers import orders, sandwiches, resources, recipes, order_details
 from .dependencies.database import engine, get_db
 
 models.Base.metadata.create_all(bind=engine)
@@ -35,7 +35,7 @@ def read_orders(db: Session = Depends(get_db)):
 def read_one_order(order_id: int, db: Session = Depends(get_db)):
     order = orders.read_one(db, order_id=order_id)
     if order is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Order not found")
     return order
 
 
@@ -43,7 +43,7 @@ def read_one_order(order_id: int, db: Session = Depends(get_db)):
 def update_one_order(order_id: int, order: schemas.OrderUpdate, db: Session = Depends(get_db)):
     order_db = orders.read_one(db, order_id=order_id)
     if order_db is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Order not found")
     return orders.update(db=db, order=order, order_id=order_id)
 
 
@@ -51,7 +51,7 @@ def update_one_order(order_id: int, order: schemas.OrderUpdate, db: Session = De
 def delete_one_order(order_id: int, db: Session = Depends(get_db)):
     order = orders.read_one(db, order_id=order_id)
     if order is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Order not found")
     return orders.delete(db=db, order_id=order_id)
 
 
@@ -158,3 +158,38 @@ def delete_one_recipe(recipe_id: int, db: Session = Depends(get_db)):
     if recipe is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
     return recipes.delete(db=db, recipe_id=recipe_id)
+
+
+# Order Details endpoints
+@app.post("/order_details/", response_model=schemas.OrderDetail, tags=["Order Details"])
+def create_order_detail(order_detail: schemas.OrderDetailCreate, db: Session = Depends(get_db)):
+    return order_details.create(db=db, order_detail=order_detail)
+
+
+@app.get("/order_details/", response_model=list[schemas.OrderDetail], tags=["Order Details"])
+def read_order_details(db: Session = Depends(get_db)):
+    return order_details.read_all(db)
+
+
+@app.get("/order_details/{order_detail_id}", response_model=schemas.OrderDetail, tags=["Order Details"])
+def read_one_order_detail(order_detail_id: int, db: Session = Depends(get_db)):
+    od = order_details.read_one(db, order_detail_id=order_detail_id)
+    if od is None:
+        raise HTTPException(status_code=404, detail="Order detail not found")
+    return od
+
+
+@app.put("/order_details/{order_detail_id}", response_model=schemas.OrderDetail, tags=["Order Details"])
+def update_one_order_detail(order_detail_id: int, order_detail: schemas.OrderDetailUpdate, db: Session = Depends(get_db)):
+    od = order_details.read_one(db, order_detail_id=order_detail_id)
+    if od is None:
+        raise HTTPException(status_code=404, detail="Order detail not found")
+    return order_details.update(db=db, order_detail_id=order_detail_id, order_detail=order_detail)
+
+
+@app.delete("/order_details/{order_detail_id}", tags=["Order Details"])
+def delete_one_order_detail(order_detail_id: int, db: Session = Depends(get_db)):
+    od = order_details.read_one(db, order_detail_id=order_detail_id)
+    if od is None:
+        raise HTTPException(status_code=404, detail="Order detail not found")
+    return order_details.delete(db=db, order_detail_id=order_detail_id)

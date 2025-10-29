@@ -1,4 +1,5 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, DECIMAL, DATETIME
+from sqlalchemy import Column, ForeignKey, Integer, String, DECIMAL, DATETIME, UniqueConstraint
+from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from ..dependencies.database import Base
@@ -8,8 +9,8 @@ class Sandwich(Base):
     __tablename__ = "sandwiches"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    sandwich_name = Column(String(100), unique=True, nullable=True)
-    price = Column(DECIMAL(4, 2), nullable=False, server_default='0.0')
+    sandwich_name = Column(String(100), unique=True, nullable=False)
+    price = Column(DECIMAL(4, 2), nullable=False, server_default='0.00')
 
     recipes = relationship("Recipe", back_populates="sandwich")
     order_details = relationship("OrderDetail", back_populates="sandwich")
@@ -20,18 +21,21 @@ class Resource(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     item = Column(String(100), unique=True, nullable=False)
-    amount = Column(Integer, index=True, nullable=False, server_default='0.0')
+    amount = Column(Integer, index=True, nullable=False, server_default='0')
 
     recipes = relationship("Recipe", back_populates="resource")
 
 
 class Recipe(Base):
     __tablename__ = "recipes"
+    __table_args__ = (
+        UniqueConstraint("sandwich_id", "resource_id", name="uq_recipe_sandwich_resource"),
+    )
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    sandwich_id = Column(Integer, ForeignKey("sandwiches.id"))
-    resource_id = Column(Integer, ForeignKey("resources.id"))
-    amount = Column(Integer, index=True, nullable=False, server_default='0.0')
+    sandwich_id = Column(Integer, ForeignKey("sandwiches.id"), nullable=False)
+    resource_id = Column(Integer, ForeignKey("resources.id"), nullable=False)
+    amount = Column(Integer, index=True, nullable=False, server_default='0')
 
     sandwich = relationship("Sandwich", back_populates="recipes")
     resource = relationship("Resource", back_populates="recipes")
@@ -42,7 +46,7 @@ class Order(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     customer_name = Column(String(100))
-    order_date = Column(DATETIME, nullable=False, server_default=str(datetime.now()))
+    order_date = Column(DATETIME, nullable=False, server_default=func.now())
     description = Column(String(300))
 
     order_details = relationship("OrderDetail", back_populates="order")
@@ -52,8 +56,8 @@ class OrderDetail(Base):
     __tablename__ = "order_details"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    order_id = Column(Integer, ForeignKey("orders.id"))
-    sandwich_id = Column(Integer, ForeignKey("sandwiches.id"))
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
+    sandwich_id = Column(Integer, ForeignKey("sandwiches.id"), nullable=False)
     amount = Column(Integer, index=True, nullable=False)
 
     sandwich = relationship("Sandwich", back_populates="order_details")
